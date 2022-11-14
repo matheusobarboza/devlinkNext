@@ -1,17 +1,18 @@
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import Head from "next/head";
-import {
-  GithubLogo,
-  Icon,
-  InstagramLogo,
-  User,
-  WhatsappLogo
-} from "phosphor-react";
-import { Social } from "../components/Social";
+import { GithubLogo, InstagramLogo, User, WhatsappLogo } from "phosphor-react";
+import { db } from "../services/firebaseConnection";
 
 interface LinkProps {
-  title: string;
-  icon: Icon;
-  link: string;
+  id: string;
+  name: string;
+  url: string;
+  bg: string;
+  color: string;
+}
+
+interface Props {
+  links?: LinkProps[];
 }
 
 const links = [
@@ -33,7 +34,8 @@ const links = [
   }
 ];
 
-const Home = () => {
+const Home = (props: Props) => {
+  console.log("props", props);
   return (
     <>
       <Head>
@@ -47,7 +49,7 @@ const Home = () => {
           Veja meus links 👇
         </span>
 
-        <main className="max-w-[600px] w-11/12 text-center">
+        {/* <main className="max-w-[600px] w-11/12 text-center">
           {links.map(({ title, link }: LinkProps, index) => {
             return (
               <section
@@ -67,10 +69,49 @@ const Home = () => {
               return <Social key={index} icon={Icon} link={link} />;
             })}
           </footer>
-        </main>
+        </main> */}
       </div>
     </>
   );
+};
+
+export const getServerSideProps = async () => {
+  try {
+    const linksRef = collection(db, "links");
+    const queryRef = query(linksRef, orderBy("created", "asc"));
+
+
+    const res = await getDocs(queryRef)
+
+    let list = [];
+
+    res.forEach((doc) => {
+      list.push({
+        ...doc.data()
+      })
+    })
+
+    console.log("lista", list)
+
+    if(list === undefined || list === null || list.length === 0) {
+      return {
+        props: {
+          links: {}
+        }
+      }
+    }
+
+    return {
+      props: {
+        links: list[0],
+      }
+    };
+  } catch (err) {
+    console.log(err);
+    return {
+      props: null
+    };
+  }
 };
 
 export default Home;
