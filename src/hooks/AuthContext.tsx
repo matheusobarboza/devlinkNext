@@ -44,7 +44,6 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<UserProps>();
   const [isLoading, setIsLoading] = useState(true);
-  console.log("user aqui", user)
 
   const signIn = async ({ email, password }: SignInProps) => {
     signInWithEmailAndPassword(auth, email, password)

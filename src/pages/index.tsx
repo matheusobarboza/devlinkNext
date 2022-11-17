@@ -1,6 +1,8 @@
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import Head from "next/head";
-import { GithubLogo, InstagramLogo, User, WhatsappLogo } from "phosphor-react";
+import { Icon, InstagramLogo, LinkedinLogo, WhatsappLogo } from "phosphor-react";
+import { useState } from "react";
+import { Social } from "../components/Social";
 import { db } from "../services/firebaseConnection";
 
 interface LinkProps {
@@ -15,27 +17,33 @@ interface Props {
   links?: LinkProps[];
 }
 
-const links = [
-  { title: "Portfólio", icon: User, link: "https://www.matheusobarboza.com" },
+interface IconProps {
+  title: string;
+  icon: Icon;
+  link: string;
+}
+
+const icons: IconProps[] = [
   {
-    title: "Github",
-    icon: GithubLogo,
-    link: "https://github.com/matheusobarboza"
+    title: "Instagram",
+    icon: InstagramLogo,
+    link: "https://www.instagram.com/matheusobarboza/"
+  },
+  {
+    title: "Linkedin",
+    icon: LinkedinLogo,
+    link: "https://www.linkedin.com/in/matheusobarboza/"
   },
   {
     title: "Whatsapp",
     icon: WhatsappLogo,
     link: "https://wa.me/5582999949683"
   },
-  {
-    title: "Instagram",
-    icon: InstagramLogo,
-    link: "https://www.instagram.com/matheusobarboza/"
-  }
 ];
 
-const Home = (props: Props) => {
-  console.log("props", props);
+const Home = ({ links }: Props) => {
+  const [list, setLis] = useState<LinkProps[] | null>(links && links)
+
   return (
     <>
       <Head>
@@ -49,27 +57,37 @@ const Home = (props: Props) => {
           Veja meus links 👇
         </span>
 
-        {/* <main className="max-w-[600px] w-11/12 text-center">
-          {links.map(({ title, link }: LinkProps, index) => {
+        <main className="max-w-[600px] w-11/12 text-center">
+          {list.map(({ id, name, url, bg, color }) => {
             return (
               <section
-                key={index}
-                className="bg-white w-full mb-5 py-2 select-none rounded hover:scale-105 transform transition duration-500 cursor-pointer"
+                key={id}
+                style={{
+                  backgroundColor: bg,
+                }}
+                className={`
+                  w-full mb-5 py-2 select-none rounded hover:scale-105 transform transition duration-500 cursor-pointer
+                `}
               >
-                <a href={link} target="_blank" rel="noreferrer">
-                  <span className="text-lg leading-tight text-gray-600 font-semibold">
-                    {title}
+                <a href={url} target="_blank" rel="noreferrer">
+                  <span
+                    style={{
+                      color: color ? color : '#ffff',
+                    }} 
+                    className="text-lg leading-tight font-semibold"
+                  >
+                    {name}
                   </span>
                 </a>
               </section>
             );
           })}
           <footer className="flex items-center justify-center gap-3 mt-10">
-            {links.map(({ icon: Icon, link }: LinkProps, index) => {
+            {icons.map(({ icon: Icon, link }, index) => {
               return <Social key={index} icon={Icon} link={link} />;
             })}
           </footer>
-        </main> */}
+        </main>
       </div>
     </>
   );
@@ -87,23 +105,24 @@ export const getServerSideProps = async () => {
 
     res.forEach((doc) => {
       list.push({
-        ...doc.data()
+        id: doc.id,
+        name: doc.data().name,
+        url: doc.data().url,
+        bg: doc.data().bg,
       })
     })
-
-    console.log("lista", list)
 
     if(list === undefined || list === null || list.length === 0) {
       return {
         props: {
-          links: {}
+          links: null,
         }
       }
     }
 
     return {
       props: {
-        links: list[0],
+        links: list,
       }
     };
   } catch (err) {
