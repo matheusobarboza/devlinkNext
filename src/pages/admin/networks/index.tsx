@@ -3,44 +3,39 @@ import Head from "next/head";
 import { LinkSimpleHorizontal } from "phosphor-react";
 import { FormEvent, useState } from "react";
 import { toast } from "react-toastify";
+import { SocialProps } from "../..";
 import { Header } from "../../../components/Header";
 import { Input } from "../../../components/ui/Input";
 import { withProtected } from "../../../hooks/routes";
 import { db } from "../../../services/firebaseConnection";
 
-interface SocialProps {
-  facebook?: string;
-  instagram?: string;
-  youtube?: string;
-}
-
 interface Props {
   socials?: SocialProps;
 }
 
-const Networks = (props: Props) => {
-  const [urlFacebook, setUrlFacebook] = useState(
-    props && props?.socials?.facebook
-  );
+const Networks = ({ socials }: Props) => {
   const [urlInstagram, setUrlInstagram] = useState(
-    props && props?.socials?.instagram
+    socials && socials?.instagram
   );
-  const [urlYoutube, setUrlYoutube] = useState(
-    props && props?.socials?.youtube
+  const [urlLinkedin, setUrlLinkedin] = useState(
+    socials && socials?.linkedin
+  );
+  const [urlWhatsapp, setUrlWhatsapp] = useState(
+    socials && socials?.whatsapp
   );
 
   const handleSave = (e: FormEvent) => {
     e.preventDefault();
 
-    if(urlFacebook === "" || urlInstagram === "" || urlYoutube === "") {
+    if(urlInstagram === "" || urlLinkedin === "" || urlWhatsapp === "") {
       toast.warn("É necessário preencher todos os campos!")
       return;
     }
 
     setDoc(doc(db, "social", "link"), {
-      facebook: urlFacebook,
       instagram: urlInstagram,
-      youtube: urlYoutube,
+      linkedin: urlLinkedin,
+      whatsapp: urlWhatsapp,
     })
       .then(() => {
         toast.success("Urls salvas com sucesso!");
@@ -69,35 +64,35 @@ const Networks = (props: Props) => {
         >
           <div className="flex flex-col gap-2">
             <label htmlFor="linkName" className="text-white">
-              Link do Facebook
+              Link do Instagram
             </label>
             <Input
               id="linkName"
-              placeholder="Digite a url do facebook..."
-              value={urlFacebook}
-              onChange={(e) => setUrlFacebook(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="linkName" className="text-white">
-              Link do instagram
-            </label>
-            <Input
-              id="linkName"
-              placeholder="Digite a url do facebook..."
+              placeholder="Digite a url do instagram..."
               value={urlInstagram}
               onChange={(e) => setUrlInstagram(e.target.value)}
             />
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="linkName" className="text-white">
-              Link do youtube
+              Link do Linkedin
             </label>
             <Input
               id="linkName"
-              placeholder="Digite a url do facebook..."
-              value={urlYoutube}
-              onChange={(e) => setUrlYoutube(e.target.value)}
+              placeholder="Digite a url do linkedin..."
+              value={urlLinkedin}
+              onChange={(e) => setUrlLinkedin(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="linkName" className="text-white">
+              Link do Whatsapp
+            </label>
+            <Input
+              id="linkName"
+              placeholder="Digite a url do whatsapp..."
+              value={urlWhatsapp}
+              onChange={(e) => setUrlInstagram(e.target.value)}
             />
           </div>
 
@@ -122,7 +117,7 @@ export const getServerSideProps = async () => {
     if (res.data() === undefined) {
       return {
         props: {
-          socials: {}
+          socials: null,
         }
       };
     }
@@ -135,9 +130,7 @@ export const getServerSideProps = async () => {
   } catch (err) {
     console.log(err);
     return {
-      props: {
-        socials: null
-      }
+      props: null,
     };
   }
 };

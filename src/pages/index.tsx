@@ -1,11 +1,22 @@
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query
+} from "firebase/firestore";
 import Head from "next/head";
-import { Icon, InstagramLogo, LinkedinLogo, WhatsappLogo } from "phosphor-react";
+import {
+  InstagramLogo,
+  LinkedinLogo,
+  WhatsappLogo
+} from "phosphor-react";
 import { useState } from "react";
 import { Social } from "../components/Social";
 import { db } from "../services/firebaseConnection";
 
-interface LinkProps {
+export interface LinkProps {
   id: string;
   name: string;
   url: string;
@@ -13,36 +24,23 @@ interface LinkProps {
   color: string;
 }
 
+export interface SocialProps {
+  whatsapp: string;
+  instagram: string;
+  linkedin: string;
+}
+
 interface Props {
   links?: LinkProps[];
+  social: SocialProps;
 }
 
-interface IconProps {
-  title: string;
-  icon: Icon;
-  link: string;
-}
-
-const icons: IconProps[] = [
-  {
-    title: "Instagram",
-    icon: InstagramLogo,
-    link: "https://www.instagram.com/matheusobarboza/"
-  },
-  {
-    title: "Linkedin",
-    icon: LinkedinLogo,
-    link: "https://www.linkedin.com/in/matheusobarboza/"
-  },
-  {
-    title: "Whatsapp",
-    icon: WhatsappLogo,
-    link: "https://wa.me/5582999949683"
-  },
-];
-
-const Home = ({ links }: Props) => {
-  const [list, setLis] = useState<LinkProps[] | null>(links && links)
+const Home = ({ links, social }: Props) => {
+  const [list, setLis] = useState<LinkProps[] | null>(links && links);
+  const [socialLinks, setSocialLinks] = useState<SocialProps | null>(
+    social && social
+  );
+  console.log(socialLinks);
 
   return (
     <>
@@ -63,17 +61,22 @@ const Home = ({ links }: Props) => {
               <section
                 key={id}
                 style={{
-                  backgroundColor: bg,
+                  backgroundColor: bg
                 }}
                 className={`
                   w-full mb-5 py-2 select-none rounded hover:scale-105 transform transition duration-500 cursor-pointer
                 `}
               >
-                <a href={url} target="_blank" rel="noreferrer">
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-5 sm:px-44"
+                >
                   <span
                     style={{
-                      color: color ? color : '#ffff',
-                    }} 
+                      color: color ? color : "#ffff"
+                    }}
                     className="text-lg leading-tight font-semibold"
                   >
                     {name}
@@ -82,11 +85,13 @@ const Home = ({ links }: Props) => {
               </section>
             );
           })}
-          <footer className="flex items-center justify-center gap-3 mt-10">
-            {icons.map(({ icon: Icon, link }, index) => {
-              return <Social key={index} icon={Icon} link={link} />;
-            })}
-          </footer>
+          {list.length !== 0 && Object.keys(socialLinks).length > 0 && (
+            <footer className="flex items-center justify-center gap-3 mt-10">
+              <Social icon={InstagramLogo} link={socialLinks.instagram} />
+              <Social icon={LinkedinLogo} link={socialLinks.linkedin} />
+              <Social icon={WhatsappLogo} link={socialLinks.whatsapp} />
+            </footer>
+          )}
         </main>
       </div>
     </>
@@ -96,10 +101,12 @@ const Home = ({ links }: Props) => {
 export const getServerSideProps = async () => {
   try {
     const linksRef = collection(db, "links");
+    const docRef = doc(db, "social", "link");
     const queryRef = query(linksRef, orderBy("created", "asc"));
 
-
-    const res = await getDocs(queryRef)
+    const res = await getDocs(queryRef);
+    const socialRes = await getDoc(docRef);
+    console.log(socialRes.data());
 
     let list = [];
 
@@ -109,20 +116,30 @@ export const getServerSideProps = async () => {
         name: doc.data().name,
         url: doc.data().url,
         bg: doc.data().bg,
-      })
-    })
+        color: doc.data().color
+      });
+    });
 
-    if(list === undefined || list === null || list.length === 0) {
+    if (socialRes.data() === undefined) {
       return {
         props: {
-          links: null,
+          social: null
         }
-      }
+      };
+    }
+
+    if (list === undefined || list === null || list.length === 0) {
+      return {
+        props: {
+          links: null
+        }
+      };
     }
 
     return {
       props: {
         links: list,
+        social: socialRes.data()
       }
     };
   } catch (err) {

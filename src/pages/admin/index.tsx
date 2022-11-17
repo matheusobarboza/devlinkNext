@@ -2,56 +2,42 @@ import {
   addDoc,
   collection,
   deleteDoc,
-  doc, onSnapshot,
+  doc,
+  getDocs,
   orderBy,
   query
 } from "firebase/firestore";
 import Head from "next/head";
-import { LinkSimpleHorizontal, Trash } from "phosphor-react";
+import { useRouter } from "next/router";
+import { CircleNotch, LinkSimpleHorizontal, Trash } from "phosphor-react";
 import { FormEvent, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { LinkProps } from "..";
 import { Header } from "../../components/Header";
 import { Logo } from "../../components/Logo";
 import { Input } from "../../components/ui/Input";
 import { withProtected } from "../../hooks/routes";
 import { db } from "../../services/firebaseConnection";
 
-interface LinkProps {
-  id: string;
-  name: string;
-  url: string;
-  bg: string;
-  color: string;
+interface Props {
+  links?: LinkProps[];
 }
 
-const Admin = () => {
+const Admin = ({ links }: Props) => {
+  const router = useRouter();
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const [nameInput, setNameInput] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [bgColorInput, setBgColorInput] = useState("#f1f1f1");
   const [txtColorInput, setTxtColorInput] = useState("#121212");
 
-  const [links, setLinks] = useState<LinkProps[]>([]);
-
-  useEffect(() => {
-    const linksRef = collection(db, "links");
-    const queryRef = query(linksRef, orderBy("created", "asc"));
-
-    const unsub = onSnapshot(queryRef, (snapshot) => {
-      let list = [];
-
-      snapshot.forEach((doc) => {
-        list.push({
-          id: doc.id,
-          name: doc?.data()?.name,
-          url: doc?.data()?.url,
-          bg: doc?.data()?.bg,
-          color: doc?.data()?.color
-        });
-      });
-
-      setLinks(list);
-    });
-  }, []);
+  const [list, setList] = useState<LinkProps[] | null>(links && links);
+  const refreshData = () => {
+    router.replace(router.asPath);
+    setIsRefreshing(true);
+  };
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
@@ -62,9 +48,9 @@ const Admin = () => {
     }
 
     addDoc(collection(db, "links"), {
+      bg: bgColorInput,
       name: nameInput,
       url: urlInput,
-      bg: bgColorInput,
       color: txtColorInput,
       created: new Date()
     })
@@ -72,6 +58,7 @@ const Admin = () => {
         setNameInput("");
         setUrlInput("");
         toast.success("Link cadastrado com sucesso!");
+        refreshData();
       })
       .catch((error) => {
         toast.error("Erro ao cadastrar!");
@@ -80,9 +67,15 @@ const Admin = () => {
   };
 
   const handleDeleteLink = async (id: string) => {
-    const docRef = doc(db, "links", id)
-    await deleteDoc(docRef)
-  }
+    const docRef = doc(db, "links", id);
+    await deleteDoc(docRef);
+    refreshData();
+  };
+
+  useEffect(() => {
+    setList(links);
+    setIsRefreshing(false);
+  }, [links]);
 
   return (
     <>
@@ -91,6 +84,13 @@ const Admin = () => {
       </Head>
       <div className="h-full flex flex-col items-center min-h-screen p-5">
         <Header />
+        {isRefreshing && (
+          <CircleNotch
+            size={30}
+            color="white"
+            className="animate-spin absolute right-3"
+          />
+        )}
 
         <Logo />
 
@@ -185,7 +185,7 @@ const Admin = () => {
         <h1 className="text-xl text-white font-medium mt-5">Meus links</h1>
 
         <article className="flex flex-col w-full max-w-xl mt-5 gap-5 animate-pop">
-          {links?.map((link) => {
+          {list?.map((link) => {
             return (
               <div
                 key={link?.id}
@@ -209,7 +209,7 @@ const Admin = () => {
                   </span>
                 </a>
                 <button
-                  onClick={() => handleDeleteLink(link.id)} 
+                  onClick={() => handleDeleteLink(link.id)}
                   className="border border-dashed border-white bg-black py-1 px-2 rounded"
                 >
                   <Trash size={28} color="white" />
@@ -221,6 +221,46 @@ const Admin = () => {
       </div>
     </>
   );
+};
+
+export const getServerSideProps = async () => {
+  try {
+    const linksRef = collection(db, "links");
+    const queryRef = query(linksRef, orderBy("created", "asc"));
+
+    const res = await getDocs(queryRef);
+
+    let list = [];
+
+    res.forEach((doc) => {
+      list.push({
+        id: doc.id,
+        name: doc.data().name,
+        url: doc.data().url,
+        bg: doc.data().bg,
+        color: doc.data().color
+      });
+    });
+
+    if (list === undefined || list === null || list.length === 0) {
+      return {
+        props: {
+          links: null
+        }
+      };
+    }
+
+    return {
+      props: {
+        links: list
+      }
+    };
+  } catch (err) {
+    console.log(err);
+    return {
+      props: null
+    };
+  }
 };
 
 export default withProtected(Admin);
